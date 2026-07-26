@@ -16,25 +16,20 @@ class MacroImpactEngine:
         
         all_tickers = [self.ticker] + list(self.macro_tickers.values())
         
-        # We download data and explicitly handle the column structure
         raw = yf.download(all_tickers, period="5y", interval="1mo", auto_adjust=True)
         
-        # Fix for the 'Adj Close' / 'Close' KeyError
-        # We grab the 'Close' prices (auto_adjust=True handles the adjustments)
         if 'Close' in raw.columns:
             df = raw['Close']
         else:
-            df = raw # Fallback if structure is simple
+            df = raw 
             
-        # Map the cryptic tickers (^TNX) to readable names (10Y_Yield)
         inv_map = {v: k for k, v in self.macro_tickers.items()}
-        inv_map[self.ticker] = self.ticker # Keep stock ticker as is
+        inv_map[self.ticker] = self.ticker 
         
         self.data = df.rename(columns=inv_map).dropna()
         
         if self.data.empty:
             print("(!) API Data restricted. Loading industry macro-benchmark for logic testing...")
-            # Fallback data to keep the engine running
             dates = pd.date_range(start='2019-01-01', periods=60, freq='ME')
             self.data = pd.DataFrame({
                 self.ticker: np.linspace(100, 200, 60) + np.random.normal(0, 5, 60),
@@ -70,9 +65,7 @@ class MacroImpactEngine:
         plt.tight_layout()
         plt.show()
 
-# --- EXECUTION ---
 if __name__ == "__main__":
-    # ASML is perfect for this as it's sensitive to both tech rates and FX
     target = "ASML"
     macros = {"10Y_Yield": "^TNX", "USD_Strength": "DX-Y.NYB"}
     
