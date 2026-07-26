@@ -15,14 +15,11 @@ class FinancialEngine:
         info = self.stock.info
         cf = self.stock.cashflow
         
-        # Safe extraction of Free Cash Flow
         try:
-            # Try to calculate from Cash Flow Statement
             ocf = cf.loc['Operating Cash Flow'].iloc[0]
             capex = cf.loc['Capital Expenditures'].iloc[0]
             fcf = ocf + capex 
         except:
-            # Fallback to the 'freeCashflow' attribute if statement extraction fails
             fcf = info.get("freeCashflow", 1000000000)
 
         return {
@@ -40,7 +37,6 @@ class FinancialEngine:
         raw_news = self.stock.news
         headlines = [item.get('title') for item in raw_news if item.get('title')] if raw_news else []
         
-        # Fallback if news is blocked or empty
         if not headlines:
             headlines = [f"{self.ticker_symbol} market position remains strong", 
                          f"Analysts debate {self.ticker_symbol} valuation targets"]
@@ -52,24 +48,18 @@ class FinancialEngine:
     def calculate_risk_metrics(self, sentiment):
         """Adjusts the WACC based on Sentiment Analysis."""
         data = self.get_core_data()
-        
-        # Constants (Standard Tier-1 Bank Assumptions)
+
         risk_free = 0.042 # 10Y Treasury
         base_erp = 0.055  # 5.5% standard premium
         
-        # THE TWIST: Dynamic NLP Adjustment
-        # Bullish news lowers the risk premium; Bearish news raises it.
         adj_erp = base_erp + (sentiment * -0.01) 
-        
-        # CAPM: Cost of Equity
+  
         cost_of_equity = risk_free + (data['beta'] * adj_erp)
         
-        # Capital Weights
         v = data['mkt_cap'] + data['debt']
         w_e = data['mkt_cap'] / v
         w_d = data['debt'] / v
         
-        # WACC calculation
         wacc = (w_e * cost_of_equity) + (w_d * 0.05 * (1 - 0.25))
         return wacc, adj_erp
 
@@ -80,14 +70,11 @@ class FinancialEngine:
         """
         data = self.get_core_data()
         base_wacc, _ = self.calculate_risk_metrics(sentiment)
-        
-        # Base Growth: Sentiment-adjusted
         base_growth = 0.12 + (sentiment * 0.05)
         
         simulated_prices = []
 
         for _ in range(iterations):
-            # Stochastic variables (Normal distribution)
             sim_wacc = np.random.normal(base_wacc, 0.005) # 0.5% volatility
             sim_growth = np.random.normal(base_growth, 0.02) # 2% volatility
             
@@ -105,23 +92,18 @@ class FinancialEngine:
             
         return simulated_prices
 
-# --- EXECUTION BLOCK ---
 if __name__ == "__main__":
     ticker = "NVDA"
     engine = FinancialEngine(ticker)
     
     print(f"--- Starting Advanced Quant Valuation for {ticker} ---")
     
-    # 1. Get Sentiment
     sentiment = engine.get_sentiment_score()
     
-    # 2. Get Risk Metrics
     wacc, erp = engine.calculate_risk_metrics(sentiment)
-    
-    # 3. Run Monte Carlo Simulation
+
     sim_results = engine.run_monte_carlo_dcf(sentiment)
-    
-    # 4. Synthesize Results
+
     current_p = engine.get_core_data()['price']
     mean_p = np.mean(sim_results)
     p5 = np.percentile(sim_results, 5)   # Lower bound
