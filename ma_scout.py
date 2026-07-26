@@ -18,8 +18,7 @@ class MATargetScout:
             try:
                 stock = yf.Ticker(ticker)
                 info = stock.info
-                
-                # Check if we actually got data, if not, trigger error to go to except
+               
                 if not info or 'enterpriseToEbitda' not in info:
                     raise ValueError("Insufficient Data")
 
@@ -29,16 +28,14 @@ class MATargetScout:
                     "EV_EBITDA": info.get("enterpriseToEbitda", 15),
                     "Profit_Margin": info.get("profitMargins", 0.1),
                     "Debt_Equity": info.get("debtToEquity", 50),
-                    "Sentiment": 0.1 # Default sentiment
+                    "Sentiment": 0.1 
                 }
                 data_list.append(metrics)
                 print(f"Live data captured: {ticker}")
             except:
                 print(f"Live data restricted for {ticker}. Will use industry benchmarking.")
 
-        # --- THE RESILIENCY FALLBACK ---
-        # If live scraping fails, we provide a high-quality "Mock Industry Dataset" 
-        # so you can still demonstrate your ranking logic.
+        
         if len(data_list) < 3:
             print("\n(!) API Latency detected. Loading Industry Benchmark Dataset for Ranking...")
             data_list = [
@@ -56,18 +53,13 @@ class MATargetScout:
         """Ranks companies based on M&A Attractiveness."""
         df = self.results_df.copy()
         
-        # Normalize Metrics: 0 (Worst) to 1 (Best)
-        # 1. Valuation: Lower EV/EBITDA is better (Cheaper acquisition)
+      
         df['Valuation_Score'] = 1 - (df['EV_EBITDA'] - df['EV_EBITDA'].min()) / (df['EV_EBITDA'].max() - df['EV_EBITDA'].min())
         
-        # 2. Profitability: Higher Margin is better
         df['Profit_Score'] = (df['Profit_Margin'] - df['Profit_Margin'].min()) / (df['Profit_Margin'].max() - df['Profit_Margin'].min())
         
-        # 3. Risk: Lower Debt/Equity is better
         df['Solvency_Score'] = 1 - (df['Debt_Equity'] - df['Debt_Equity'].min()) / (df['Debt_Equity'].max() - df['Debt_Equity'].min())
         
-        # --- STRATEGY WEIGHTING ---
-        # Weighting: 40% Valuation, 40% Profitability, 20% Solvency
         df['MA_Score'] = (df['Valuation_Score'] * 0.40) + (df['Profit_Score'] * 0.40) + (df['Solvency_Score'] * 0.20)
         
         self.results_df = df.sort_values(by='MA_Score', ascending=False)
@@ -76,13 +68,13 @@ class MATargetScout:
         print("\n" + "="*60)
         print("M&A STRATEGY REPORT: SEMICONDUCTOR SECTOR CONSOLIDATION")
         print("="*60)
-        # Select key columns for the final printout
+        
         top_view = self.results_df[['Ticker', 'Name', 'MA_Score', 'EV_EBITDA', 'Profit_Margin']]
         print(top_view.head(10).to_string(index=False))
         print("="*60)
         print("Note: Score based on Valuation (40%), Profitability (40%), and Risk (20%).")
 
-# --- EXECUTION ---
+
 if __name__ == "__main__":
     tickers = ["NVDA", "INTC", "AMD", "ASML", "TSM", "MU", "AVGO", "QCOM"]
     scout = MATargetScout(tickers)
@@ -90,5 +82,4 @@ if __name__ == "__main__":
     scout.calculate_ma_score()
     scout.print_report()
     
-    # Save to CSV for your portfolio
     scout.results_df.to_csv("ma_scout_report.csv", index=False)
