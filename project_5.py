@@ -5,7 +5,6 @@ import numpy as np
 import plotly.graph_objects as go
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
-# --- 1. CONFIG & THEME ---
 st.set_page_config(page_title="Strategic Analyst Terminal", layout="wide", page_icon="📈")
 
 st.markdown("""
@@ -15,7 +14,6 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. THE STRATEGY DATA ENGINE ---
 @st.cache_data(show_spinner=False)
 def fetch_strategy_data(ticker):
     stock = yf.Ticker(ticker)
@@ -24,8 +22,7 @@ def fetch_strategy_data(ticker):
     cf = stock.get_cashflow()
     
     try:
-        # Strategy Metrics: Profitability Trends
-        # We look at Operating Margin and Gross Margin over time
+
         margins = pd.DataFrame({
             "Operating Margin": is_stmt.loc['Operating Income'] / is_stmt.loc['Total Revenue'],
             "Gross Margin": is_stmt.loc['Gross Profit'] / is_stmt.loc['Total Revenue']
@@ -33,11 +30,11 @@ def fetch_strategy_data(ticker):
         margins.index = pd.to_datetime(margins.index).year
         margins = margins.sort_index()
 
-        # Core Metrics
+      
         price = info.get("currentPrice") or info.get("regularMarketPrice") or 150.0
         shares = info.get("sharesOutstanding") or 1e9
         
-        # Ratios
+
         ratios = {
             "D/E": (info.get("debtToEquity") or 0.0) / 100,
             "ROE": info.get("returnOnEquity") or 0.0,
@@ -45,7 +42,7 @@ def fetch_strategy_data(ticker):
             "Payout": info.get("payoutRatio") or 0.0
         }
 
-        # DCF Starting Point
+
         fcf = cf.loc['Operating Cash Flow'].iloc[0] + cf.loc['Capital Expenditures'].iloc[0]
         
     except:
@@ -55,7 +52,6 @@ def fetch_strategy_data(ticker):
         }, index=[2021, 2022, 2023, 2024])
         price, fcf, shares, ratios = 180.0, 5e9, 1e9, {"D/E": 0.5, "ROE": 0.15, "Current": 1.5, "Payout": 0.2}
 
-    # Sentiment
     news = stock.news
     analyzer = SentimentIntensityAnalyzer()
     titles = [n.get('title') for n in news if n.get('title')] if news else []
@@ -67,7 +63,7 @@ def fetch_strategy_data(ticker):
         "ratios": ratios, "sentiment": sentiment, "name": info.get("shortName", ticker)
     }
 
-# --- 3. SIDEBAR ---
+
 st.sidebar.title("🏁 Strategy Controls")
 ticker_input = st.sidebar.text_input("Enter Ticker", value="NVDA").upper()
 
@@ -76,21 +72,20 @@ st.sidebar.subheader("Valuation Assumptions")
 growth = st.sidebar.slider("Projected Growth (%)", 0, 50, 15) / 100
 wacc = st.sidebar.slider("Discount Rate (WACC %)", 5, 20, 10) / 100
 
-# --- 4. EXECUTION ---
+
 try:
     data = fetch_strategy_data(ticker_input)
     
     st.title(f"📊 Strategic Analysis: {data['name']}")
     st.caption(f"Megha R Ajit | CFA Candidate | Strategy Focus: Efficiency & Profitability")
 
-    # SECTION 1: KPIS
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Debt-to-Equity", f"{data['ratios']['D/E']:.2f}", "Solvency")
     c2.metric("ROE (Efficiency)", f"{data['ratios']['ROE']*100:.1f}%", "Profitability")
     c3.metric("Current Ratio", f"{data['ratios']['Current']:.2f}", "Liquidity")
     c4.metric("Dividend Payout", f"{data['ratios']['Payout']*100:.1f}%", "Capital Return")
 
-    # SECTION 2: THE STRATEGY CHART (MARGIN EXPANSION)
+ 
     st.markdown("---")
     st.markdown("### 📈 Efficiency Trend: Operating vs. Gross Margins")
     st.write("Strategist Insight: Upward trending margins indicate pricing power and scale efficiency.")
@@ -102,7 +97,6 @@ try:
     fig_margin.update_layout(template="plotly_dark", height=350, margin=dict(l=10, r=10, t=10, b=10), hovermode="x unified", yaxis_tickformat='.0%')
     st.plotly_chart(fig_margin, use_container_width=True)
 
-    # SECTION 3: MONTE CARLO
     st.markdown("---")
     st.markdown("### 🎲 Probabilistic Intrinsic Valuation")
     adj_g = growth + (data['sentiment'] * 0.05)
