@@ -61,7 +61,7 @@ def fetch_corporate_data(ticker):
         "name": info.get("shortName", ticker)
     }
 
-st.sidebar.title("📦 Amazon FP&A Tool")
+st.sidebar.title("📦 FP&A Tool")
 ticker_input = st.sidebar.text_input("Enter Company Ticker", value="AMZN").upper()
 growth_input = st.sidebar.slider("Projected FCF Growth (%)", 0, 50, 20) / 100
 wacc_input = st.sidebar.slider("Cost of Capital (WACC %)", 5, 15, 9) / 100
